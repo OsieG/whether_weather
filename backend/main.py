@@ -16,7 +16,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://your-frontend.vercel.app"],
+    allow_origins=["http://localhost:3000", "https://your-frontend.vercel.app"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -41,7 +41,7 @@ def get_coordinates(city: str, count: int = 1, country_code: str = None):
     }
     if country_code:
         params["country_code"] = country_code
-    response = requests.get(coord_url, params=params)
+    response = requests.get(coord_url, params=params, timeout=10)
     if response.status_code == 200:
         data = response.json()
         if "results" not in data or not data['results']:
@@ -75,7 +75,7 @@ def fetch_current_weather(lat: float, lon: float):
         "longitude": lon,
         "current": "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,uv_index"
     }
-    response = requests.get(weather_url, params=params)
+    response = requests.get(weather_url, params=params, timeout=10)
     if response.status_code == 200:
         data = response.json()
         current = data["current"]
@@ -109,7 +109,7 @@ def get_tomorrow_forecast(lat: float, lon: float):
         "timezone": "auto",
         "forecast_days": 2
     }
-    response = requests.get(forecast_url, params=params)
+    response = requests.get(forecast_url, params=params, timeout=10)
     if response.status_code == 200:
         data = response.json()
         daily = data["daily"]
@@ -123,7 +123,7 @@ def get_tomorrow_forecast(lat: float, lon: float):
             "uv_index_max": daily["uv_index_max"][1]
         }
     else:
-        return {"error": "Failed to fetch forecast data"}
+        return {"error": f"Failed to fetch forecast data: {response.status_code} - {response.text}"}
 
 
 @app.get("/weather/forecast")
@@ -142,7 +142,7 @@ def get_air_quality(lat: float, lon: float):
         "longitude": lon,
         "current": "pm10,pm2_5,us_aqi"
     }
-    response = requests.get(air_quality_url, params=params)
+    response = requests.get(air_quality_url, params=params, timeout=10)
     if response.status_code == 200:
         data = response.json()
         current = data["current"]
