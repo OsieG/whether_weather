@@ -244,7 +244,8 @@ def build_llm_recommendation(weather_data: dict, forecast_data: dict, air_qualit
     response = client.chat.completions.create(
         model="openai/gpt-oss-20b",
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=150
+        max_tokens=150,
+        reasoning_effort="none"
     )
     
     return response.choices[0].message.content
@@ -293,7 +294,8 @@ def weather_chat(request: ChatRequest):
     response = client.chat.completions.create(
         model="openai/gpt-oss-20b",
         messages=messages,
-        max_tokens=150
+        max_tokens=150,
+        reasoning_effort="none"
     )
 
     assistant_message = response.choices[0].message.content
