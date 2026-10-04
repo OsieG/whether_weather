@@ -1,0 +1,101 @@
+[
+  {
+    "location": "makati",
+    "date": "2026-10-04",
+    "weather": {
+      "temperature": 31.2,
+      "humidity": 64,
+      "apparent_temperature": 35.3,
+      "precipitation": 0.0,
+      "weather_code": 3,
+      "wind_speed": 11.1,
+      "uv_index": 1.15
+    },
+    "forecast": {
+      "date": "2026-10-05",
+      "temperature_max": 31.9,
+      "temperature_min": 25.7,
+      "precipitation_probability_max": 94,
+      "weathercode": 80,
+      "uv_index_max": 7.75
+    },
+    "air_quality": {
+      "pm10": 17.2,
+      "pm2_5": 16.2,
+      "us_aqi": 99
+    },
+    "recommendation_rule": {
+      "clothing": "Avoid the heat, wear breathable clothing and stay hydrated.",
+      "sun_protection": "Low UV index. Minimal sun protection required.",
+      "rain_gear": "Heavy rain expected. Wear waterproof clothing and bring an umbrella.",
+      "air_quality": "Air quality is moderate. Sensitive individuals should consider limiting outdoor activities."
+    },
+    "recommendation_llm": ""
+  },
+  {
+    "location": "baguio",
+    "date": "2026-10-04",
+    "weather": {
+      "temperature": 18.4,
+      "humidity": 99,
+      "apparent_temperature": 20.8,
+      "precipitation": 0.4,
+      "weather_code": 80,
+      "wind_speed": 3.8,
+      "uv_index": 1.1
+    },
+    "forecast": {
+      "date": "2026-10-05",
+      "temperature_max": 22.1,
+      "temperature_min": 15.9,
+      "precipitation_probability_max": 100,
+      "weathercode": 55,
+      "uv_index_max": 8.7
+    },
+    "air_quality": {
+      "pm10": 14.8,
+      "pm2_5": 13.9,
+      "us_aqi": 62
+    },
+    "recommendation_rule": {
+      "clothing": "Wear comfortable clothing, like a t-shirt and jeans.",
+      "sun_protection": "Low UV index. Minimal sun protection required.",
+      "rain_gear": "Heavy rain expected. Wear waterproof clothing and bring an umbrella.",
+      "air_quality": "Air quality is moderate. Sensitive individuals should consider limiting outdoor activities."
+    },
+    "recommendation_llm": "It\u2019s a cool, very humid day today"
+  },
+  {
+    "location": "uplb",
+    "date": "2026-10-04",
+    "weather": {
+      "temperature": 28.5,
+      "humidity": 81,
+      "apparent_temperature": 34.3,
+      "precipitation": 0.0,
+      "weather_code": 2,
+      "wind_speed": 5.4,
+      "uv_index": 1.1
+    },
+    "forecast": {
+      "date": "2026-10-05",
+      "temperature_max": 30.9,
+      "temperature_min": 23.5,
+      "precipitation_probability_max": 94,
+      "weathercode": 95,
+      "uv_index_max": 7.8
+    },
+    "air_quality": {
+      "pm10": 9.8,
+      "pm2_5": 8.8,
+      "us_aqi": 70
+    },
+    "recommendation_rule": {
+      "clothing": "Avoid the heat, wear breathable clothing and stay hydrated.",
+      "sun_protection": "Low UV index. Minimal sun protection required.",
+      "rain_gear": "Heavy rain expected. Wear waterproof clothing and bring an umbrella.",
+      "air_quality": "Air quality is moderate. Sensitive individuals should consider limiting outdoor activities."
+    },
+    "recommendation_llm": ""
+  }
+]
