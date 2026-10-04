@@ -3,6 +3,7 @@ import requests
 from groq import Groq
 import os
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 
 class ChatRequest(BaseModel):
     message: str
@@ -12,6 +13,13 @@ class ChatRequest(BaseModel):
     country_code: str = None
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://your-frontend.vercel.app"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 FIXED_LOCATIONS = {
     "makati" : {"latitude": 14.5547, "longitude": 121.0244},
