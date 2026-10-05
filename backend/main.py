@@ -27,100 +27,81 @@ FIXED_LOCATIONS = {
     "uplb" : {"latitude": 14.1700, "longitude": 121.2430},
 }
 
-client = Groq(api_key=os.environ["GROQ_API_KEY"])
+WEATHER_API_KEY = os.environ.get("WEATHER_API_KEY")
+client = Groq(api_key=os.environ.get("GROQ_API_KEY", "placeholder"))
 
 @app.get("/health")
 def healthcheck():
     return {"status": "ok"}
 
-def get_coordinates(city: str, count: int = 1, country_code: str = None):
-    coord_url = "https://geocoding-api.open-meteo.com/v1/search"
-    params = {
-        "name": city,
-        "count": count
-    }
-    if country_code:
-        params["country_code"] = country_code
-    response = requests.get(coord_url, params=params, timeout=10)
-    if response.status_code == 200:
-        data = response.json()
-        if "results" not in data or not data['results']:
-            return None
-        result = data['results'][0]
-        return {
-            "latitude": result["latitude"],
-            "longitude": result["longitude"]
-        }
-    else:
-        return {"error": "Failed to fetch data from the geocoding API"}
-
-def resolve_location(location_key: str = None, city: str = None, country_code: str = None):
+def resolve_location_query(location_key: str = None, city: str = None, country_code: str = None):
     if location_key:
         if location_key not in FIXED_LOCATIONS:
             return None, {"error": f"Unknown location key: {location_key}"}
         loc = FIXED_LOCATIONS[location_key]
-        return (loc["latitude"], loc["longitude"]), None
+        return f"{loc['latitude']},{loc['longitude']}", None
     elif city:
-        coords = get_coordinates(city, country_code=country_code)
-        if coords is None:
-            return None, {"error": f"Could not find location: {city}"}
-        return (coords["latitude"], coords["longitude"]), None
+        query = city if not country_code else f"{city},{country_code}"
+        return query, None
     else:
         return None, {"error": "Please provide either a location_key or a city name."}
 
-def fetch_current_weather(lat: float, lon: float):
-    weather_url = "https://api.open-meteo.com/v1/forecast"
+def fetch_current_weather(query: str):
+    weather_url = "https://api.weatherapi.com/v1/current.json"
     params = {
-        "latitude": lat,
-        "longitude": lon,
-        "current": "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,uv_index"
+        "key": WEATHER_API_KEY,
+        "q": query,
+        "aqi": "yes"
     }
     response = requests.get(weather_url, params=params, timeout=10)
     if response.status_code == 200:
         data = response.json()
         current = data["current"]
         return {
-            "temperature": current["temperature_2m"],
-            "humidity": current["relative_humidity_2m"],
-            "apparent_temperature": current["apparent_temperature"],
-            "precipitation": current["precipitation"],
-            "weather_code": current["weather_code"],
-            "wind_speed": current["wind_speed_10m"],
-            "uv_index": current["uv_index"]
+            "temperature": current["temp_c"],
+            "apparent_temperature": current["feelslike_c"],
+            "humidity": current["humidity"],
+            "precipitation": current["precip_mm"],
+            "condition": current["condition"]["text"],
+            "wind_speed": current["wind_kph"],
+            "uv_index": current["uv"],
+            "us_aqi_category": current["air_quality"]["us-epa-index"],
+            "pm10": current["air_quality"]["pm10"],
+            "pm2_5": current["air_quality"]["pm2_5"],
+
         }
     else:
         return {"error": "Failed to fetch weather data"}
 
 @app.get("/weather/current")
 def get_current_weather(location_key: str = None, city: str = None, country_code: str = None):
-    coords, error = resolve_location(location_key, city, country_code)
+    query, error = resolve_location_query(location_key, city, country_code)
     if error:
         return error
-    lat, lon = coords
+    return fetch_current_weather(query)
 
-    return fetch_current_weather(lat, lon)
-
-def get_tomorrow_forecast(lat: float, lon: float):
-    forecast_url = "https://api.open-meteo.com/v1/forecast"
+def get_tomorrow_forecast(query: str):
+    forecast_url = "https://api.weatherapi.com/v1/forecast.json"
     params = {
-        "latitude": lat,
-        "longitude": lon,
-        "daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode,uv_index_max",
-        "timezone": "auto",
-        "forecast_days": 2
+        "key": WEATHER_API_KEY,
+        "q": query,
+        "days": 3,
+        "aqi": "no",
+        "alerts": "no"
     }
     response = requests.get(forecast_url, params=params, timeout=10)
     if response.status_code == 200:
         data = response.json()
-        daily = data["daily"]
+        tomorrow = data["forecast"]["forecastday"][1]
+        day = tomorrow["day"]
 
         return {
-            "date": daily["time"][1],
-            "temperature_max": daily["temperature_2m_max"][1],
-            "temperature_min": daily["temperature_2m_min"][1],
-            "precipitation_probability_max": daily["precipitation_probability_max"][1],
-            "weathercode": daily["weathercode"][1],
-            "uv_index_max": daily["uv_index_max"][1]
+            "date": tomorrow["date"],
+            "temperature_max": day["maxtemp_c"],
+            "temperature_min": day["mintemp_c"],
+            "precipitation_probability_max": day["daily_chance_of_rain"],
+            "condition": day["condition"]["text"],
+            "uv_index_max": day["uv"]
         }
     else:
         return {"error": f"Failed to fetch forecast data: {response.status_code} - {response.text}"}
@@ -128,40 +109,27 @@ def get_tomorrow_forecast(lat: float, lon: float):
 
 @app.get("/weather/forecast")
 def get_forecast(location_key: str = None, city: str = None, country_code: str = None):
-    coords, error = resolve_location(location_key, city, country_code)
+    query, error = resolve_location_query(location_key, city, country_code)
     if error:
         return error
-    lat, lon = coords
+    return get_tomorrow_forecast(query)
 
-    return get_tomorrow_forecast(lat, lon)
-
-def get_air_quality(lat: float, lon: float):
-    air_quality_url = "https://air-quality-api.open-meteo.com/v1/air-quality"
-    params = {
-        "latitude": lat,
-        "longitude": lon,
-        "current": "pm10,pm2_5,us_aqi"
+def get_air_quality_data(query: str):
+    weather = fetch_current_weather(query)
+    if "error" in weather:
+        return weather
+    return {
+        "pm10": weather["pm10"],
+        "pm2_5": weather["pm2_5"],
+        "us_aqi_category": weather["us_aqi_category"],
     }
-    response = requests.get(air_quality_url, params=params, timeout=10)
-    if response.status_code == 200:
-        data = response.json()
-        current = data["current"]
-        return {
-            "pm10": current["pm10"],
-            "pm2_5": current["pm2_5"],
-            "us_aqi": current["us_aqi"]
-        }
-    else:
-        return {"error": "Failed to fetch air quality data"}
 
 @app.get("/weather/air_quality")
 def get_air_quality_endpoint(location_key: str = None, city: str = None, country_code: str = None):
-    coords, error = resolve_location(location_key, city, country_code)
+    query, error = resolve_location_query(location_key, city, country_code)
     if error:
         return error
-    lat, lon = coords
-
-    return get_air_quality(lat, lon)
+    return get_air_quality_data(query)
 
 
 def clothing_recommendation(apparent_temp: float):
@@ -190,48 +158,42 @@ def sun_protection_recommendation(uv_index: float):
         case index if index >= 10:
             return "Extreme UV index. Avoid sun exposure and take all precautions."
 
-def rain_recommendation(precipitation: float):
-    match precipitation:
-        case amount if amount == 0:
+def rain_recommendation(precipitation_chance: float):
+    match precipitation_chance:
+        case chance if chance == 0:
             return "No rain expected. No rain gear needed."
-        case amount if 0 < amount <= 30:
-            return "Light rain expected. Consider bringing an umbrella."
-        case amount if 30 < amount <= 60:
-            return "Moderate rain expected. Bring an umbrella and waterproof clothing."
-        case amount if amount > 60:
-            return "Heavy rain expected. Wear waterproof clothing and bring an umbrella."
+        case chance if 0 < chance <= 30:
+            return "Light chance of rain. Consider bringing an umbrella."
+        case chance if 30 < chance <= 60:
+            return "Moderate chance of rain. Bring an umbrella and waterproof clothing."
+        case chance if chance > 60:
+            return "High chance of rain. Wear waterproof clothing and bring an umbrella."
 
-def air_quality_recommendation(us_aqi: float):
-    match us_aqi:
-        case aqi if aqi <=50:
+def air_quality_recommendation(us_aqi_category: int):
+    match us_aqi_category:
+        case 1:
             return "Air quality is good. No precautions needed."
-        case aqi if 51 <= aqi <= 100:
-            return "Air quality is moderate. Sensitive individuals should consider limiting outdoor activities."
-        case aqi if 101 <= aqi <= 150:
+        case 2:
+            return "Air quality is moderate. Unusually sensitive individuals should consider limiting prolonged outdoor exertion."
+        case 3:
             return "Air quality is unhealthy for sensitive groups. Limit prolonged outdoor exertion."
-        case aqi if aqi > 150:
-            return "Air quality is unhealthy. Everyone should limit outdoor activities."
+        case 4:
+            return "Air quality is unhealthy. Everyone should limit prolonged outdoor exertion, consider a mask outdoors."
+        case 5:
+            return "Air quality is very unhealthy. Avoid outdoor activity; wear a mask if you must go out."
+        case 6:
+            return "Air quality is hazardous. Stay indoors and avoid outdoor exposure entirely."
+        case _:
+            return "Air quality data unavailable."
+
 
 def build_recommendation(weather_data: dict, forecast_data: dict, air_quality_data: dict):
     return{
         "clothing": clothing_recommendation(weather_data["apparent_temperature"]),
         "sun_protection": sun_protection_recommendation(weather_data["uv_index"]),
         "rain_gear": rain_recommendation(forecast_data["precipitation_probability_max"]),
-        "air_quality": air_quality_recommendation(air_quality_data["us_aqi"])
+        "air_quality": air_quality_recommendation(air_quality_data["us_aqi_category"])
     }
-
-# @app.get("/weather/recommendations")
-# def get_recommendations(location_key: str = None, city: str = None, country_code: str = None):
-#     coords, error = resolve_location(location_key, city, country_code)
-#     if error:
-#         return error
-#     lat, lon = coords
-# 
-#     weather_data = fetch_current_weather(lat, lon)
-#     forecast_data = get_tomorrow_forecast(lat, lon)
-#     air_quality_data = get_air_quality(lat, lon)
-# 
-#     return {"weather": weather_data, "forecast": forecast_data, "air_quality": air_quality_data, "recommendation": build_recommendation(weather_data, forecast_data, air_quality_data)}
 
 def build_llm_recommendation(weather_data: dict, forecast_data: dict, air_quality_data: dict):
     prompt = f"""You are a helpful weather assistant. Based on the following data, write a short, friendly recommendation (2-3 sentences) covering what to wear, whether to bring an umbrella or sunscreen, and any air quality concerns.
@@ -246,7 +208,7 @@ def build_llm_recommendation(weather_data: dict, forecast_data: dict, air_qualit
             - Chance of rain: {forecast_data['precipitation_probability_max']}%
 
             Air quality:
-            - US AQI: {air_quality_data['us_aqi']}
+            - US EPA air quality category (1=Good, 6=Hazardous): {air_quality_data['us_aqi_category']}
         """
     
     response = client.chat.completions.create(
@@ -260,14 +222,13 @@ def build_llm_recommendation(weather_data: dict, forecast_data: dict, air_qualit
 
 @app.get("/weather/recommendations")
 def get_recommendations(location_key: str = None, city: str = None, country_code: str = None, mode: str = "rule"):
-    coords, error = resolve_location(location_key, city, country_code)
+    query, error = resolve_location_query(location_key, city, country_code)
     if error:
         return error
-    lat, lon = coords
 
-    weather_data = fetch_current_weather(lat, lon)
-    forecast_data = get_tomorrow_forecast(lat, lon)
-    air_quality_data = get_air_quality(lat, lon)
+    weather_data = fetch_current_weather(query)
+    forecast_data = get_tomorrow_forecast(query)
+    air_quality_data = get_air_quality_data(query)
 
     result = {"weather": weather_data, "forecast": forecast_data, "air_quality": air_quality_data}
 
@@ -280,20 +241,18 @@ def get_recommendations(location_key: str = None, city: str = None, country_code
 
 @app.post("/weather/chat")
 def weather_chat(request: ChatRequest):
-    coords, error = resolve_location(request.location_key, request.city, request.country_code)
+    query, error = resolve_location_query(request.location_key, request.city, request.country_code)
     if error:
         return error
-    lat, lon = coords
 
-    weather_data = fetch_current_weather(lat, lon)
-    forecast_data = get_tomorrow_forecast(lat, lon)
-    air_quality_data = get_air_quality(lat, lon)
+    weather_data = fetch_current_weather(query)
+    forecast_data = get_tomorrow_forecast(query)
+    air_quality_data = get_air_quality_data(query)
 
     system_context = f"""You are a helpful weather assistant for {request.location_key or request.city}. Keep your answers brief and direct, 1-3 sentences, no unnecessary padding or repeating the weather data back to the user.
-        Current conditions: {weather_data['temperature']}°C, feels like {weather_data['apparent_temperature']}°C, 
-        humidity {weather_data['humidity']}%, UV index {weather_data['uv_index']}.
+        Current conditions: {weather_data['temperature']}°C, feels like {weather_data['apparent_temperature']}°C, humidity {weather_data['humidity']}%, UV index {weather_data['uv_index']}.
         Tomorrow: high {forecast_data['temperature_max']}°C, {forecast_data['precipitation_probability_max']}% chance of rain.
-        Air quality (US AQI): {air_quality_data['us_aqi']}."""
+        Air quality (US EPA category 1-6, 1=Good): {air_quality_data['us_aqi_category']}."""
 
     messages = [{"role": "system", "content": system_context}]
     messages.extend(request.conversation_history)
@@ -308,6 +267,8 @@ def weather_chat(request: ChatRequest):
 
     assistant_message = response.choices[0].message.content
     return {"reply": assistant_message}
+
+
 
 
 # uvicorn main:app --reload --port 8000
