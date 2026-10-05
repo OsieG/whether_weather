@@ -6,19 +6,23 @@ from main import (
     FIXED_LOCATIONS,
     fetch_current_weather,
     get_tomorrow_forecast,
-    get_air_quality,
+    get_air_quality_data,
     build_recommendation,
     build_llm_recommendation,
+    resolve_location_query
 )
 
 DATA_FILE = Path(__file__).parent / "data" / "history.json"
 
 
-def collect_for_location(location_key, coords):
-    lat, lon = coords["latitude"], coords["longitude"]
-    weather = fetch_current_weather(lat, lon)
-    forecast = get_tomorrow_forecast(lat, lon)
-    air_quality = get_air_quality(lat, lon)
+def collect_for_location(location_key):
+    query, error = resolve_location_query(location_key, None, None)
+    if error:
+        return error
+
+    weather = fetch_current_weather(query)
+    forecast = get_tomorrow_forecast(query)
+    air_quality = get_air_quality_data(query)
 
     return {
         "location": location_key,
@@ -39,10 +43,11 @@ def main():
     else:
         history = []
 
-    for location_key, coords in FIXED_LOCATIONS.items():
-        entry = collect_for_location(location_key, coords)
-        history.append(entry)
-        print(f"Collected: {location_key}")
+    for location_key, _ in FIXED_LOCATIONS.items():
+        entry = collect_for_location(location_key)
+        if entry:
+            history.append(entry)
+            print(f"Collected: {location_key}")
 
     DATA_FILE.write_text(json.dumps(history, indent=2))
     print(f"Saved {len(history)} total entries to {DATA_FILE}")
