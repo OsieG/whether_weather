@@ -1,9 +1,13 @@
 from fastapi import FastAPI
-import requests
 from groq import Groq
-import os
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+import requests, os
+import math
+import ephem
+
 
 class ChatRequest(BaseModel):
     message: str
@@ -85,7 +89,7 @@ def get_tomorrow_forecast(query: str):
     params = {
         "key": WEATHER_API_KEY,
         "q": query,
-        "days": 3,
+        "days": 2,
         "aqi": "no",
         "alerts": "no"
     }
@@ -268,8 +272,131 @@ def weather_chat(request: ChatRequest):
     assistant_message = response.choices[0].message.content
     return {"reply": assistant_message}
 
+import math
+import ephem
+from datetime import timezone
+from zoneinfo import ZoneInfo
 
+COMPASS = ["N","NNE","NE","ENE","E","ESE","SE","SSE",
+           "S","SSW","SW","WSW","W","WNW","NW","NNW"]
 
+def _compass(az_deg):
+    return COMPASS[round(az_deg / 22.5) % 16]
+
+def moon_position(lat, lon, local_dt, tz_id):
+    obs = ephem.Observer()
+    obs.lat, obs.lon = str(lat), str(lon)
+    # ephem works in UTC, so convert the location's local time first
+    utc = local_dt.replace(tzinfo=ZoneInfo(tz_id)).astimezone(timezone.utc)
+    obs.date = utc.strftime("%Y/%m/%d %H:%M:%S")
+    moon = ephem.Moon(obs)
+    az = math.degrees(moon.az)
+    return {
+        "altitude": round(math.degrees(moon.alt), 1),
+        "azimuth": round(az),
+        "direction": _compass(az),
+    }
+
+def _parse_t(date_str, t_str):
+    try:
+        return datetime.strptime(f"{date_str} {t_str}", "%Y-%m-%d %I:%M %p")
+    except ValueError:
+        return None  # "No moonrise" etc.
+
+def score_hour(h):
+    cloud = h["cloud"]
+    vis = h["vis_km"]
+    pm25 = h.get("air_quality", {}).get("pm2_5", 0)
+    hum = h["humidity"]
+
+    cloud_s = 100 - cloud
+    vis_s = min(vis / 10, 1) * 100
+    pm_s = max(0, 100 - (pm25 / 55) * 100)
+    hum_s = max(0, 100 - max(hum - 60, 0) * 2.5)
+
+    total = 0.5 * cloud_s + 0.2 * vis_s + 0.2 * pm_s + 0.1 * hum_s
+    if cloud >= 85:
+        total = min(total, 35)
+    return round(total)
+
+def label(score):
+    if score >= 80: return "Excellent"
+    if score >= 60: return "Good"
+    if score >= 40: return "Fair"
+    return "Poor"
+
+def moon_report(query: str):
+    forecast_url = "https://api.weatherapi.com/v1/forecast.json"
+    params = {
+        "key": WEATHER_API_KEY,
+        "q": query,
+        "days": 2,
+        "aqi": "yes",
+        "alerts": "no",
+    }
+    response = requests.get(forecast_url, params=params, timeout=10)
+    if response.status_code != 200:
+        return {"error": f"Failed to fetch moon data: {response.status_code} - {response.text}"}
+
+    response.raise_for_status()
+    data = response.json()
+    days = data["forecast"]["forecastday"]
+    now = datetime.strptime(data["location"]["localtime"], "%Y-%m-%d %H:%M")
+
+    sunset = _parse_t(days[0]["date"], days[0]["astro"]["sunset"])
+    sunrise = _parse_t(days[1]["date"], days[1]["astro"]["sunrise"])
+
+    loc = data["location"]
+    lat, lon, tz_id = loc["lat"], loc["lon"], loc["tz_id"]
+    rows = []
+    for d in days:
+        for h in d["hour"]:
+            t = datetime.strptime(h["time"], "%Y-%m-%d %H:%M")
+            if not (sunset <= t <= sunrise and t >= now.replace(minute=0)):
+                continue
+            pos = moon_position(lat, lon, t, tz_id)
+            if pos["altitude"] <= 0:
+                continue
+            rows.append({
+                "time": h["time"], "score": score_hour(h),
+                "cloud": h["cloud"], "vis_km": h["vis_km"],
+                **pos,
+            })
+
+    if not rows:
+        return {"viewable": False, "reason": "Moon not up during dark hours"}
+
+    best = max(rows, key=lambda x: x["score"])
+    avg = round(sum(r["score"] for r in rows) / len(rows))
+
+    first_time = rows[0]["time"]
+    last_time = rows[-1]["time"]
+
+    # use the astro block of the day the first visible hour falls on
+    astro = next(d["astro"] for d in days if d["date"] == first_time[:10])
+    return {
+        "viewable": True,
+        "phase": astro["moon_phase"],
+        "illumination": astro["moon_illumination"],
+        "moonrise": astro["moonrise"], 
+        "moonset": astro["moonset"],
+        "night_score": avg, 
+        "night_label": label(avg),
+        "best_hour": best["time"], 
+        "best_score": best["score"],
+        "best_label": label(best["score"]),
+        "hours": rows,
+        "best_direction": best["direction"],
+        "best_altitude": best["altitude"]
+    }
+
+@app.get("/weather/moon")
+def get_moongazing_data(location_key: str = None, city: str = None, country_code: str = None):
+    query, error = resolve_location_query(location_key, city, country_code)
+    if error:
+        return error
+    
+    return moon_report(query)
 
 # uvicorn main:app --reload --port 8000
 # set GROQ_API_KEY=create_new_key_each time
