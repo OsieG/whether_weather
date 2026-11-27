@@ -5938,5 +5938,113 @@
       "air_quality": "Air quality is good. No precautions needed."
     },
     "recommendation_llm": "It\u2019s a hot day with a 35\u202f\u00b0C feel\u2011temp, so wear light, breathable clothing and a wide\u2011brim hat to keep cool. Bring sunscreen and a small umbrella just in case the 29\u202f% chance of rain shows up tomorrow. The air quality is good (EPA\u202f1), so no special precautions are needed."
+  },
+  {
+    "location": "makati",
+    "date": "2026-11-27",
+    "weather": {
+      "temperature": 31.3,
+      "apparent_temperature": 35.1,
+      "humidity": 59,
+      "precipitation": 0.0,
+      "condition": "Overcast",
+      "wind_speed": 9.0,
+      "uv_index": 7.5,
+      "us_aqi_category": 1,
+      "pm10": 11.1,
+      "pm2_5": 7.9
+    },
+    "forecast": {
+      "date": "2026-11-28",
+      "temperature_max": 31.3,
+      "temperature_min": 25.7,
+      "precipitation_probability_max": 57,
+      "condition": "Patchy rain nearby",
+      "uv_index_max": 7.9
+    },
+    "air_quality": {
+      "pm10": 11.1,
+      "pm2_5": 7.9,
+      "us_aqi_category": 1
+    },
+    "recommendation_rule": {
+      "clothing": "Avoid the heat, wear breathable clothing and stay hydrated.",
+      "sun_protection": "High UV index. Wear protective clothing, hat, sunglasses, and sunscreen.",
+      "rain_gear": "Moderate chance of rain. Bring an umbrella and waterproof clothing.",
+      "air_quality": "Air quality is good. No precautions needed."
+    },
+    "recommendation_llm": "It\u2019s hot and humid today, with a high of 31\u202f\u00b0C and a UV index of 7.5, so light, breathable clothing, a hat, and sunscreen are key\u2014stay hydrated, too. With a 57\u202f% chance of rain tomorrow, bring a small umbrella or a light waterproof jacket just in case. Air quality is excellent (category\u202f1), so you can enjoy the outdoors without worry."
+  },
+  {
+    "location": "baguio",
+    "date": "2026-11-27",
+    "weather": {
+      "temperature": 26.4,
+      "apparent_temperature": 27.0,
+      "humidity": 50,
+      "precipitation": 0.06,
+      "condition": "Patchy rain nearby",
+      "wind_speed": 4.3,
+      "uv_index": 8.5,
+      "us_aqi_category": 1,
+      "pm10": 16.8,
+      "pm2_5": 13.0
+    },
+    "forecast": {
+      "date": "2026-11-28",
+      "temperature_max": 26.0,
+      "temperature_min": 15.3,
+      "precipitation_probability_max": 56,
+      "condition": "Mist",
+      "uv_index_max": 8.8
+    },
+    "air_quality": {
+      "pm10": 16.8,
+      "pm2_5": 13.0,
+      "us_aqi_category": 1
+    },
+    "recommendation_rule": {
+      "clothing": "Wear light clothing, like shorts and a t-shirt.",
+      "sun_protection": "Very high UV index. Minimize sun exposure and seek shade.",
+      "rain_gear": "Moderate chance of rain. Bring an umbrella and waterproof clothing.",
+      "air_quality": "Air quality is good. No precautions needed."
+    },
+    "recommendation_llm": "It\u2019ll feel warm today, so light clothing like a short\u2011sleeve tee and a light jacket for the cooler evening is ideal. With a 56\u202f% chance of rain tomorrow, bring a compact umbrella or a waterproof jacket, and don\u2019t forget sunscreen (UV\u202f8.5) for the sunny parts of the day. The air quality is good (category\u202f1), so no special precautions are needed."
+  },
+  {
+    "location": "uplb",
+    "date": "2026-11-27",
+    "weather": {
+      "temperature": 31.1,
+      "apparent_temperature": 35.2,
+      "humidity": 61,
+      "precipitation": 0.04,
+      "condition": "Patchy rain nearby",
+      "wind_speed": 8.6,
+      "uv_index": 8.2,
+      "us_aqi_category": 1,
+      "pm10": 13.7,
+      "pm2_5": 9.8
+    },
+    "forecast": {
+      "date": "2026-11-28",
+      "temperature_max": 31.4,
+      "temperature_min": 22.9,
+      "precipitation_probability_max": 69,
+      "condition": "Patchy rain nearby",
+      "uv_index_max": 8.3
+    },
+    "air_quality": {
+      "pm10": 13.7,
+      "pm2_5": 9.8,
+      "us_aqi_category": 1
+    },
+    "recommendation_rule": {
+      "clothing": "Avoid the heat, wear breathable clothing and stay hydrated.",
+      "sun_protection": "Very high UV index. Minimize sun exposure and seek shade.",
+      "rain_gear": "High chance of rain. Wear waterproof clothing and bring an umbrella.",
+      "air_quality": "Air quality is good. No precautions needed."
+    },
+    "recommendation_llm": "It\u2019s a hot day with a temperature feeling like 35\u202f\u00b0C, so wear lightweight, breathable clothing and a wide\u2011brimmed hat. Bring a sturdy umbrella for tomorrow\u2019s high chance of rain (69\u202f%) and consider sunscreen (UV\u202f8.2) for afternoon sun exposure. Air quality is excellent (category\u202f1), so no extra precautions are needed."
   }
 ]
